@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flash Card - Kanji</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 1rem;
+    }
+    .title { font-size: 1.5rem; font-weight: bold; background: #B48EF2; padding: 1rem; color: white; }
+    .menu { display: flex; justify-content: center; gap: 1rem; margin: 1rem 0; }
+    button, select { padding: 0.5rem 1rem; border: none; border-radius: 10px; background-color: #a8fff3; cursor: pointer; margin-top: 10px; }
+    #questionCard { background-color: #a8fff3; padding: 2rem; font-size: 3rem; margin: 1rem auto; width: 80%; border-radius: 20px; height: 90px;}
+    .choices button {
+      display: block;
+      margin: 0.5rem auto;
+      width: 80%;
+      font-size: 1rem;
+    }
+    .correct { background-color: #4CAF50 !important; color: white; }
+    .wrong { background-color: #F44336 !important; color: white; }
+    #nextBtn {
+  display: none;
+  margin: 1rem auto 0;
+}
+  </style>
+</head>
+<body>
+
+  <div class="title">Kanji</div>
+
+
+  <select id="babSelector"></select>
+  <div id="progress"></div>
+  <div id="questionCard">Loading...</div>
+  <div class="choices" id="choicesContainer"></div>
+  <button id="nextBtn">Selanjutnya</button>
+
+  <script>
+    window.onload = () => {
+    if (!localStorage.getItem('kanji')) {
+    fetch('kanji.json')
+      .then(response => response.json())
+      .then(data => {
+        localStorage.setItem('kanji', JSON.stringify(data));
+        console.log("Data kanji dimuat ke localStorage.");
+        location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+      })
+      .catch(error => {
+        console.error("Gagal memuat kosakata.json:", error);
+      });     
+    } else {
+    console.log("Kanji sudah ada di localStorage.");
+    // startGame(); // fungsi untuk mulai flashcard
+    }
+    };
+
+
+    const rawData = JSON.parse(localStorage.getItem("kanji"));
+    const objekData = Object.keys(rawData)
+    console.log(objekData[0])
+    let currentBab = objekData[0];
+    let questions = [];
+    let currentIndex = 0;
+    let correctAnswer = "";
+    let score = 0;
+
+    const babSelector = document.getElementById("babSelector");
+    const questionCard = document.getElementById("questionCard");
+    const choicesContainer = document.getElementById("choicesContainer");
+    const nextBtn = document.getElementById("nextBtn");
+    const progress = document.getElementById("progress");
+
+    // Inisialisasi bab
+    Object.keys(rawData).forEach(bab => {
+      const opt = document.createElement("option");
+      opt.value = bab;
+      opt.textContent = bab.toUpperCase();
+      babSelector.appendChild(opt);
+    });
+
+    babSelector.addEventListener("change", () => {
+      currentBab = babSelector.value;
+      startGame();
+    });
+
+    function startGame() {
+      questions = shuffle([...rawData[currentBab]]);
+      currentIndex = 0;
+      score = 0;
+      showQuestion();
+    }
+
+    function showQuestion() {
+      if (currentIndex >= questions.length) {
+        questionCard.textContent = "Selesai! Skor benar: " + score + " dari " + questions.length;
+        choicesContainer.innerHTML = "";
+        nextBtn.style.display = "none";
+        return;
+      }
+
+      const q = questions[currentIndex];
+      const kanji = q[0];
+      correctAnswer = q[1];
+      speak = q[1];
+
+      questionCard.textContent = kanji;
+      progress.textContent = `${currentIndex + 1} / ${questions.length}`;
+
+      // siapkan pilihan
+      const allChoices = getRandomChoices(rawData[currentBab], correctAnswer);
+      choicesContainer.innerHTML = "";
+      allChoices.forEach(choice => {
+        const btn = document.createElement("button");
+        btn.textContent = choice;
+        btn.onclick = () => handleAnswer(btn, choice);
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    function handleAnswer(button, choice) {
+      const buttons = document.querySelectorAll(".choices button");
+      buttons.forEach(btn => btn.disabled = true);
+      if (choice === correctAnswer) {
+        button.classList.add("correct");
+        questionCard.innerHTML = `<div style="font-size: 3rem;">${questions[currentIndex][0]}</div>
+                          <div style="margin-top: 1rem; font-size: 1.2rem; color: #555;">${questions[currentIndex][2]}</div>`;
+
+        score++;
+      } else {
+        button.classList.add("wrong");
+        buttons.forEach(btn => {
+          if (btn.textContent === correctAnswer) {
+            btn.classList.add("correct");
+            questionCard.innerHTML = `<div style="font-size: 3rem;">${questions[currentIndex][0]}</div>
+                          <div style="margin-top: 1rem; font-size: 1.2rem; color: #555;">${questions[currentIndex][2]}</div>`;
+
+          }
+        });
+      }
+
+      speakSentence(speak)
+      nextBtn.style.display = "block";
+    }
+
+    nextBtn.onclick = () => {
+      currentIndex++;
+      nextBtn.style.display = "none";
+      showQuestion();
+    };
+
+    function getRandomChoices(data, correct) {
+      const otherChoices = shuffle(data.filter(item => item[1] !== correct))
+        .slice(0, 3)
+        .map(item => item[1]);
+      return shuffle([correct, ...otherChoices]);
+    }
+
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
+    }
+
+    // Fungsi untuk membaca teks dengan SpeechSynthesis API
+function speakSentence(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ja-JP"; // Bahasa Jepang
+    utterance.rate = 0.8
+    speechSynthesis.speak(utterance);
+}
+
+    // Start saat load
+    startGame();
+  </script>
+
+</body>
+</html>
