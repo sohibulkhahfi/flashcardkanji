@@ -15,7 +15,7 @@
     .title { font-size: 1.5rem; font-weight: bold; background: #B48EF2; padding: 1rem; color: white; }
     .menu { display: flex; justify-content: center; gap: 1rem; margin: 1rem 0; }
     button, select { padding: 0.5rem 1rem; border: none; border-radius: 10px; background-color: #a8fff3; cursor: pointer; margin-top: 10px; }
-    #questionCard { background-color: #a8fff3; padding: 2rem; font-size: 3rem; margin: 1rem auto; width: 80%; border-radius: 20px; height: 90px;}
+    #questionCard { background-color: #a8fff3; padding: 2rem; font-size: 3rem; margin: 1rem auto; width: 80%; border-radius: 20px;}
     .choices button {
       display: block;
       margin: 0.5rem auto;
@@ -33,9 +33,10 @@
 <body>
 
   <div class="title">Kanji</div>
-
-
+<div>
   <select id="babSelector"></select>
+
+</div>
   <div id="progress"></div>
   <div id="questionCard">Loading...</div>
   <div class="choices" id="choicesContainer"></div>
