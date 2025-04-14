@@ -1,208 +1,397 @@
 <!DOCTYPE html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Flash Card - Kanji</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background-color: #ffffff;
-      margin: 0;
-      padding: 1rem;
-    }
-    .title { font-size: 1.5rem; font-weight: bold; background: #B48EF2; padding: 1rem; color: white; }
-    .menu { display: flex; justify-content: center; gap: 1rem; margin: 1rem 0; }
-    button, select { padding: 0.5rem 1rem; border: none; border-radius: 10px; background-color: #a8fff3; cursor: pointer; margin-top: 10px; }
-    #questionCard { background-color: #a8fff3; padding: 2rem; font-size: 3rem; margin: 1rem auto; width: 80%; border-radius: 20px;}
-    .choices button {
-      display: block;
-      margin: 0.5rem auto;
-      width: 80%;
-      font-size: 1rem;
-    }
-    .correct { background-color: #4CAF50 !important; color: white; }
-    .wrong { background-color: #F44336 !important; color: white; }
-    #nextBtn {
-  display: none;
-  margin: 1rem auto 0;
-}
-  </style>
-</head>
-<body>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Flash Card - Kanji</title>
+		<style>
+			body {
+				font-family: sans-serif;
+				text-align: center;
+				background-color: #ffffff;
+				margin: 0;
+				padding: 1rem;
+			}
+			.title {
+				font-size: 1.5rem;
+				font-weight: bold;
+				background: #b48ef2;
+				padding: 1rem;
+				color: white;
+			}
+			.menu {
+				display: flex;
+				justify-content: center;
+				gap: 1rem;
+				margin: 1rem 0;
+			}
+			button,
+			select {
+				padding: 0.5rem 1rem;
+				border: none;
+				border-radius: 10px;
+				background-color: #a8fff3;
+				cursor: pointer;
+				margin-top: 10px;
+			}
+			#questionCard {
+				background-color: #a8fff3;
+				padding: 2rem;
+				font-size: 3rem;
+				margin: 1rem auto;
+				width: 80%;
+				border-radius: 20px;
+			}
+			.choices button {
+				display: block;
+				margin: 0.5rem auto;
+				width: 80%;
+				font-size: 1rem;
+			}
+			.correct {
+				background-color: #4caf50 !important;
+				color: white;
+			}
+			.wrong {
+				background-color: #f44336 !important;
+				color: white;
+			}
+			#nextBtn {
+				display: none;
+				margin: 1rem auto 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="title">Kanji</div>
+		<select id="langSelector">
+			<option value="kanji">Indonesia</option>
+			<option value="enkanji">English</option>
+			<option value="thaikanji">Thailand</option>
+			<option value="vietnamkanji">Vietnam</option>
+			<option value="mynmarkanji">Myanmar</option>
+			<option value="nepalkanji">Nepal</option>
+		</select>
+		<div>
+			<select id="babSelector"></select>
+			<button id="lihatDaftarBtn">📋 Lihat Daftar</button>
+		</div>
+		<div id="progress"></div>
+		<div id="questionCard">Loading...</div>
+		<div class="choices" id="choicesContainer"></div>
+		<button id="nextBtn">Selanjutnya</button>
 
-  <div class="title">Kanji</div>
-  <div>
-    <select id="babSelector"></select>
-    <button id="lihatDaftarBtn">📋 Lihat Daftar</button>
-  </div>
-  <div id="progress"></div>
-  <div id="questionCard">Loading...</div>
-  <div class="choices" id="choicesContainer"></div>
-  <button id="nextBtn">Selanjutnya</button>
+		<div
+			id="modal"
+			style="
+				display: none;
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0, 0, 0, 0.5);
+				z-index: 1000;
+				justify-content: center;
+				align-items: center;
+			">
+			<div
+				style="
+					background: white;
+					padding: 2rem;
+					border-radius: 15px;
+					max-width: 90%;
+					max-height: 80%;
+					overflow: auto;
+				">
+				<h2>Daftar Kanji - <span id="modalBabTitle"></span></h2>
+				<ul id="modalList" style="text-align: left; line-height: 2"></ul>
+				<button onclick="document.getElementById('modal').style.display='none'">
+					Tutup
+				</button>
+			</div>
+		</div>
 
-  <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; 
-  background-color: rgba(0,0,0,0.5); z-index:1000; justify-content:center; align-items:center;">
-  <div style="background:white; padding:2rem; border-radius:15px; max-width:90%; max-height:80%; overflow:auto;">
-    <h2>Daftar Kanji - <span id="modalBabTitle"></span></h2>
-    <ul id="modalList" style="text-align:left; line-height: 2;"></ul>
-    <button onclick="document.getElementById('modal').style.display='none'">Tutup</button>
-  </div>
-</div>
+		<script>
+			window.onload = () => {
+				if (!localStorage.getItem("kanji")) {
+					fetch("kanji.json")
+						.then((response) => response.json())
+						.then((data) => {
+							localStorage.setItem("kanji", JSON.stringify(data));
+							console.log("Data kanji dimuat ke localStorage.");
+							location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+						})
+						.catch((error) => {
+							console.error("Gagal memuat kanji.json:", error);
+						});
+				} else {
+					// console.log("Kanji sudah ada di localStorage.");
+					// startGame(); // fungsi untuk mulai flashcard
+				}
 
+				// Mengecek data enkanji di localStorage
+				if (!localStorage.getItem("enkanji")) {
+					fetch("enkanji.json")
+						.then((response) => response.json())
+						.then((data) => {
+							localStorage.setItem("enkanji", JSON.stringify(data));
+							console.log("Data enkanji dimuat ke localStorage.");
+							location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+						})
+						.catch((error) => {
+							console.error("Gagal memuat enkanji.json:", error);
+						});
+				} else {
+					// console.log("enKanji sudah ada di localStorage.");
+					// startGame(); // fungsi untuk mulai flashcard
+				}
 
-  <script>
-    window.onload = () => {
-    if (!localStorage.getItem('kanji')) {
-    fetch('kanji.json')
-      .then(response => response.json())
-      .then(data => {
-        localStorage.setItem('kanji', JSON.stringify(data));
-        console.log("Data kanji dimuat ke localStorage.");
-        location.reload(); // reload supaya langsung pakai data yang sudah disimpan
-      })
-      .catch(error => {
-        console.error("Gagal memuat kosakata.json:", error);
-      });     
-    } else {
-    console.log("Kanji sudah ada di localStorage.");
-    // startGame(); // fungsi untuk mulai flashcard
-    }
-    };
+				// Mengecek data thaikanji di localStorage
+				if (!localStorage.getItem("thaikanji")) {
+					fetch("thaikanji.json")
+						.then((response) => response.json())
+						.then((data) => {
+							localStorage.setItem("thaikanji", JSON.stringify(data));
+							console.log("Data thaikanji dimuat ke localStorage.");
+							location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+						})
+						.catch((error) => {
+							console.error("Gagal memuat thaikanji.json:", error);
+						});
+				} else {
+					// console.log("thaikanji sudah ada di localStorage.");
+					// startGame(); // fungsi untuk mulai flashcard
+				}
 
+				// Mengecek data vietnamkanji di localStorage
+				if (!localStorage.getItem("vietnamkanji")) {
+					fetch("vietnamkanji.json")
+						.then((response) => response.json())
+						.then((data) => {
+							localStorage.setItem("vietnamkanji", JSON.stringify(data));
+							console.log("Data vietnamkanji dimuat ke localStorage.");
+							location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+						})
+						.catch((error) => {
+							console.error("Gagal memuat vietnamkanji.json:", error);
+						});
+				} else {
+					// console.log("vietnamkanji sudah ada di localStorage.");
+					// startGame(); // fungsi untuk mulai flashcard
+				}
 
-    const rawData = JSON.parse(localStorage.getItem("kanji"));
-    const objekData = Object.keys(rawData)
-    console.log(objekData[0])
-    let currentBab = objekData[0];
-    let questions = [];
-    let currentIndex = 0;
-    let correctAnswer = "";
-    let score = 0;
+				// Mengecek data mynmarkanji di localStorage
+				if (!localStorage.getItem("mynmarkanji")) {
+					fetch("mynmarkanji.json")
+						.then((response) => response.json())
+						.then((data) => {
+							localStorage.setItem("mynmarkanji", JSON.stringify(data));
+							console.log("Data mynmarkanji dimuat ke localStorage.");
+							location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+						})
+						.catch((error) => {
+							console.error("Gagal memuat mynmarkanji.json:", error);
+						});
+				} else {
+					// console.log("mynmarkanji sudah ada di localStorage.");
+					// startGame(); // fungsi untuk mulai flashcard
+				}
 
-    const babSelector = document.getElementById("babSelector");
-    const questionCard = document.getElementById("questionCard");
-    const choicesContainer = document.getElementById("choicesContainer");
-    const nextBtn = document.getElementById("nextBtn");
-    const progress = document.getElementById("progress");
+				// Mengecek data nepalkanji di localStorage
+				if (!localStorage.getItem("nepalkanji")) {
+					fetch("nepalkanji.json")
+						.then((response) => response.json())
+						.then((data) => {
+							localStorage.setItem("nepalkanji", JSON.stringify(data));
+							console.log("Data nepalkanji dimuat ke localStorage.");
+							location.reload(); // reload supaya langsung pakai data yang sudah disimpan
+						})
+						.catch((error) => {
+							console.error("Gagal memuat nepalkanji.json:", error);
+						});
+				} else {
+					// console.log("nepalkanji sudah ada di localStorage.");
+					// startGame(); // fungsi untuk mulai flashcard
+				}
+			};
 
-    // Inisialisasi bab
-    Object.keys(rawData).forEach(bab => {
-      const opt = document.createElement("option");
-      opt.value = bab;
-      opt.textContent = bab.toUpperCase();
-      babSelector.appendChild(opt);
-    });
+			let currentLang = localStorage.getItem("language");
+			if (!currentLang) {
+				currentLang = "enkanji";
+				localStorage.setItem("language", currentLang);
+			}
+			//mengisi nilai currentLang
+			document.getElementById("langSelector").value = currentLang;
+			//fungsi mengganti nilai language
+			document
+				.getElementById("langSelector")
+				.addEventListener("change", (e) => {
+					currentLang = e.target.value;
+					localStorage.setItem("language", currentLang);
 
-    babSelector.addEventListener("change", () => {
-      currentBab = babSelector.value;
-      startGame();
-    });
+					// Update opsi bab sesuai bahasa baru
+					babSelector.innerHTML = ""; // hapus opsi sebelumnya
+					Object.keys(dataSets[currentLang]).forEach((bab) => {
+						const opt = document.createElement("option");
+						opt.value = bab;
+						opt.textContent = bab.toUpperCase();
+						babSelector.appendChild(opt);
+					});
 
-    function startGame() {
-      questions = shuffle([...rawData[currentBab]]);
-      currentIndex = 0;
-      score = 0;
-      showQuestion();
-    }
+					currentBab = Object.keys(dataSets[currentLang])[0];
+					babSelector.value = currentBab;
 
-    function showQuestion() {
-      if (currentIndex >= questions.length) {
-        questionCard.textContent = "Selesai! Skor benar: " + score + " dari " + questions.length;
-        choicesContainer.innerHTML = "";
-        nextBtn.style.display = "none";
-        return;
-      }
+					startGame(dataSets[currentLang]);
+				});
 
-      const q = questions[currentIndex];
-      const kanji = q[0];
-      correctAnswer = q[1];
-      speak = q[1];
+			let rawData = JSON.parse(localStorage.getItem("enkanji"));
+			let kanji = JSON.parse(localStorage.getItem("kanji"));
+			let enkanji = JSON.parse(localStorage.getItem("enkanji"));
+			let thaikanji = JSON.parse(localStorage.getItem("thaikanji"));
+			let vietnamkanji = JSON.parse(localStorage.getItem("vietnamkanji"));
+			let mynmarkanji = JSON.parse(localStorage.getItem("mynmarkanji"));
+			let nepalkanji = JSON.parse(localStorage.getItem("nepalkanji"));
+			let dataSets = {
+				kanji,
+				enkanji,
+				thaikanji,
+				vietnamkanji,
+				mynmarkanji,
+				nepalkanji,
+			};
+			const objekData = Object.keys(dataSets[currentLang]);
+			let currentBab = objekData[0];
+			let questions = [];
+			let currentIndex = 0;
+			let correctAnswer = "";
+			let score = 0;
 
-      questionCard.textContent = kanji;
-      progress.textContent = `${currentIndex + 1} / ${questions.length}`;
+			const babSelector = document.getElementById("babSelector");
+			const questionCard = document.getElementById("questionCard");
+			const choicesContainer = document.getElementById("choicesContainer");
+			const nextBtn = document.getElementById("nextBtn");
+			const progress = document.getElementById("progress");
+			const langSelector = document.getElementById("langSelector");
 
-      // siapkan pilihan
-      const allChoices = getRandomChoices(rawData[currentBab], correctAnswer);
-      choicesContainer.innerHTML = "";
-      allChoices.forEach(choice => {
-        const btn = document.createElement("button");
-        btn.textContent = choice;
-        btn.onclick = () => handleAnswer(btn, choice);
-        choicesContainer.appendChild(btn);
-      });
-    }
+			// Inisialisasi Language
 
-    function handleAnswer(button, choice) {
-      const buttons = document.querySelectorAll(".choices button");
-      buttons.forEach(btn => btn.disabled = true);
-      if (choice === correctAnswer) {
-        button.classList.add("correct");
-        questionCard.innerHTML = `<div style="font-size: 3rem;">${questions[currentIndex][0]}</div>
+			// Inisialisasi bab
+			Object.keys(dataSets[currentLang]).forEach((bab) => {
+				const opt = document.createElement("option");
+				opt.value = bab;
+				opt.textContent = bab.toUpperCase();
+				babSelector.appendChild(opt);
+			});
+
+			babSelector.addEventListener("change", () => {
+				currentBab = babSelector.value;
+				startGame(dataSets[currentLang]);
+			});
+
+			function startGame(dataGame) {
+				questions = shuffle([...dataGame[currentBab]]);
+				currentIndex = 0;
+				score = 0;
+				showQuestion();
+			}
+
+			function showQuestion() {
+				if (currentIndex >= questions.length) {
+					questionCard.textContent =
+						"Selesai! Skor benar: " + score + " dari " + questions.length;
+					choicesContainer.innerHTML = "";
+					nextBtn.style.display = "none";
+					return;
+				}
+
+				const q = questions[currentIndex];
+				const kanji = q[0];
+				correctAnswer = q[1];
+				speak = q[1];
+
+				questionCard.textContent = kanji;
+				progress.textContent = `${currentIndex + 1} / ${questions.length}`;
+
+				// siapkan pilihan
+				const Choices = dataSets[currentLang];
+				const allChoices = getRandomChoices(Choices[currentBab], correctAnswer);
+				choicesContainer.innerHTML = "";
+				allChoices.forEach((choice) => {
+					const btn = document.createElement("button");
+					btn.textContent = choice;
+					btn.onclick = () => handleAnswer(btn, choice);
+					choicesContainer.appendChild(btn);
+				});
+			}
+
+			function handleAnswer(button, choice) {
+				const buttons = document.querySelectorAll(".choices button");
+				buttons.forEach((btn) => (btn.disabled = true));
+				if (choice === correctAnswer) {
+					button.classList.add("correct");
+					questionCard.innerHTML = `<div style="font-size: 3rem;">${questions[currentIndex][0]}</div>
                           <div style="margin-top: 1rem; font-size: 1.2rem; color: #555;">${questions[currentIndex][2]}</div>`;
 
-        score++;
-      } else {
-        button.classList.add("wrong");
-        buttons.forEach(btn => {
-          if (btn.textContent === correctAnswer) {
-            btn.classList.add("correct");
-            questionCard.innerHTML = `<div style="font-size: 3rem;">${questions[currentIndex][0]}</div>
+					score++;
+				} else {
+					button.classList.add("wrong");
+					buttons.forEach((btn) => {
+						if (btn.textContent === correctAnswer) {
+							btn.classList.add("correct");
+							questionCard.innerHTML = `<div style="font-size: 3rem;">${questions[currentIndex][0]}</div>
                           <div style="margin-top: 1rem; font-size: 1.2rem; color: #555;">${questions[currentIndex][2]}</div>`;
+						}
+					});
+				}
 
-          }
-        });
-      }
+				speakSentence(speak);
+				nextBtn.style.display = "block";
+			}
 
-      speakSentence(speak)
-      nextBtn.style.display = "block";
-    }
+			nextBtn.onclick = () => {
+				currentIndex++;
+				nextBtn.style.display = "none";
+				showQuestion();
+			};
 
-    nextBtn.onclick = () => {
-      currentIndex++;
-      nextBtn.style.display = "none";
-      showQuestion();
-    };
+			function getRandomChoices(data, correct) {
+				const otherChoices = shuffle(data.filter((item) => item[1] !== correct))
+					.slice(0, 3)
+					.map((item) => item[1]);
+				return shuffle([correct, ...otherChoices]);
+			}
 
-    function getRandomChoices(data, correct) {
-      const otherChoices = shuffle(data.filter(item => item[1] !== correct))
-        .slice(0, 3)
-        .map(item => item[1]);
-      return shuffle([correct, ...otherChoices]);
-    }
+			function shuffle(arr) {
+				return arr.sort(() => Math.random() - 0.5);
+			}
 
-    function shuffle(arr) {
-      return arr.sort(() => Math.random() - 0.5);
-    }
+			// Fungsi untuk membaca teks dengan SpeechSynthesis API
+			function speakSentence(text) {
+				const utterance = new SpeechSynthesisUtterance(text);
+				utterance.lang = "ja-JP"; // Bahasa Jepang
+				utterance.rate = 0.8;
+				speechSynthesis.speak(utterance);
+			}
 
-    // Fungsi untuk membaca teks dengan SpeechSynthesis API
-function speakSentence(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ja-JP"; // Bahasa Jepang
-    utterance.rate = 0.8
-    speechSynthesis.speak(utterance);
-}
+			document.getElementById("lihatDaftarBtn").onclick = () => {
+				const listElement = document.getElementById("modalList");
+				const modalBabTitle = document.getElementById("modalBabTitle");
+				const lihat = dataSets[currentLang];
+				const data = lihat[currentBab];
+				listElement.innerHTML = "";
+				modalBabTitle.textContent = currentBab.toUpperCase();
 
-document.getElementById("lihatDaftarBtn").onclick = () => {
-  const listElement = document.getElementById("modalList");
-  const modalBabTitle = document.getElementById("modalBabTitle");
-  const data = rawData[currentBab];
-  listElement.innerHTML = "";
-  modalBabTitle.textContent = currentBab.toUpperCase();
+				data.forEach((item) => {
+					const li = document.createElement("li");
+					li.textContent = `${item[0]} - ${item[1]} (${item[2]})`;
+					listElement.appendChild(li);
+				});
 
-  data.forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = `${item[0]} - ${item[1]} (${item[2]})`;
-    listElement.appendChild(li);
-  });
+				document.getElementById("modal").style.display = "flex";
+			};
 
-  document.getElementById("modal").style.display = "flex";
-};
-
-    // Start saat load
-    startGame();
-  </script>
-
-</body>
+			startGame(dataSets[currentLang]);
+		</script>
+	</body>
 </html>
